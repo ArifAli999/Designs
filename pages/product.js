@@ -1,4 +1,4 @@
-import React from 'React'
+import React from 'react'
 import MenuBar from '../components/ProductPg/MenuBar'
 import BreadCrumb from '../components/ProductPg/BreadCrumb'
 import { BiChevronRight } from 'react-icons/bi'
