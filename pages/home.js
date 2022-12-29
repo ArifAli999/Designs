@@ -1,11 +1,14 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import GuestComponent from '../components/GuestComponent'
 import AuthComponent from '../components/AuthComponent';
+import useAuthStore from '../store/authStore';
 
 function Home() {
 
-    const [username, setUsername] = useState('');
-    const [auth, setAuth] = useState(false)
+
+
+
+    const { userProfile, addUser } = useAuthStore();
 
 
     return (
@@ -14,7 +17,8 @@ function Home() {
 
 
 
-            {auth ? <AuthComponent username={username} /> : <GuestComponent username={username} setUsername={setUsername} setAuth={setAuth} />}
+            {userProfile ? <AuthComponent /> : <GuestComponent />}
+
 
         </div>
     )

@@ -1,7 +1,15 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { db } from '../firebase/firebase.config'
+import { v4 as uuidv4 } from 'uuid';
+import useAuthStore from '../store/authStore';
 
-function GuestComponent({ username, setUsername, setAuth }) {
 
+
+function GuestComponent() {
+    const [username, setUsername] = useState('');
+
+    const { addUser } = useAuthStore();
 
     function handleSubmit() {
 
@@ -9,8 +17,33 @@ function GuestComponent({ username, setUsername, setAuth }) {
             alert('Please enter a username')
         }
 
-        setAuth(true);
 
+        handleSignUp();
+
+
+
+    }
+
+
+    async function handleSignUp() {
+
+        const uid = uuidv4();
+
+        addUser({
+            name: username,
+            status: "searching",
+            userid: uid,
+            createdAt: Date.now()
+        })
+        await setDoc(doc(db, "users", uid), {
+            name: username,
+            status: "searching",
+            userid: uid,
+            createdAt: serverTimestamp()
+        }).then(() => {
+            alert('success')
+
+        })
     }
     return (
         <div className='w-full h-full flex items-center justify-center gap-4'>
