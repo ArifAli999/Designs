@@ -30,8 +30,10 @@ function ChatComp() {
     }, [])
 
     useEffect(() => {
+        findRoom()
         if (currentUser) {
-            createRoom(currentUser)
+
+            // createRoom(currentUser)
         }
 
     }, [users])
@@ -43,23 +45,80 @@ function ChatComp() {
     }, [room])
 
 
+    async function findRoom() {
+        const data = []
+        const finalData = []
+
+        const q = query(collection(db, "activerooms"), where("user1id", "==", `${userProfile.userid}`));
+        const q2 = query(collection(db, "activerooms"), where("user2id", "==", `${userProfile.userid}`));
+
+        const querySnapshot = await getDocs(q);
+        const querySnapshot2 = await getDocs(q2);
 
 
+        querySnapshot.forEach((doc) => {
+            // doc.data() is never undefined for query doc snapshots
+
+            data.push(doc.data());
+        })
+        querySnapshot2.forEach((doc) => {
+            // doc.data() is never undefined for query doc snapshots
+
+            data.push(doc.data());
+        })
+
+        finalData.push(data)
+        console.log(finalData)
+
+
+
+        if (!finalData) {
+            alert('create room')
+
+            createRoom(currentUser)
+        }
+
+
+    }
 
     async function createRoom(user) {
         const uid = uuidv4()
 
-        if (user) {
-            await setDoc(doc(db, "activerooms", uid), {
-                user1id: userProfile.userid,
-                user2id: user.userid,
-                user1: userProfile.name,
-                user2: user.name,
-                createdAt: serverTimestamp(),
-                roomid: uid,
-            });
 
-            checkRoom(uid)
+
+
+
+
+
+        await setDoc(doc(db, "activerooms", uid), {
+            user1id: userProfile.userid,
+            user2id: user.userid,
+            user1: userProfile.name,
+            user2: user.name,
+            createdAt: serverTimestamp(),
+            roomid: uid,
+        });
+
+        checkRoom(uid)
+
+
+    }
+
+    async function checkRoom(uid) {
+        if (uid) {
+            const docRef = doc(db, "activerooms", uid);
+
+            const docSnap = await getDoc(docRef);
+
+
+            if (docSnap.exists()) {
+                console.log('room created', docSnap.data())
+                setRoom(docSnap.data());
+
+            } else {
+                // doc.data() will be undefined in this case
+                console.log("No such document!");
+            }
         }
 
     }
@@ -90,24 +149,7 @@ function ChatComp() {
     }
 
 
-    async function checkRoom(uid) {
-        if (uid) {
-            const docRef = doc(db, "activerooms", uid);
 
-            const docSnap = await getDoc(docRef);
-
-
-            if (docSnap.exists()) {
-                console.log(docSnap.data())
-                setRoom(docSnap.data());
-
-            } else {
-                // doc.data() will be undefined in this case
-                console.log("No such document!");
-            }
-        }
-
-    }
 
 
     async function getMessages() {
