@@ -17,7 +17,7 @@ function Home() {
 
 
 
-            {userProfile ? <AuthComponent /> : <GuestComponent />}
+            {userProfile && userProfile.userid ? <AuthComponent /> : <GuestComponent />}
 
 
         </div>
