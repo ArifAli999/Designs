@@ -4,6 +4,7 @@ import { db, auth } from "../firebase/firebase.config";
 import useAuthStore from '../store/authStore'
 import { useQueryClient } from 'react-query';
 import { useQuery, useInfiniteQuery } from "react-query";
+import { uuidv4 } from '@firebase/util';
 
 function ChatComp() {
 
@@ -46,18 +47,19 @@ function ChatComp() {
 
 
     async function createRoom(user) {
+        const uid = uuidv4()
 
         if (user) {
-            await setDoc(doc(db, "activerooms", `${userProfile.userid}-${user.userid}`), {
+            await setDoc(doc(db, "activerooms", uid), {
                 user1id: userProfile.userid,
                 user2id: user.userid,
                 user1: userProfile.name,
                 user2: user.name,
                 createdAt: serverTimestamp(),
-                roomid: `${userProfile.userid}-${user.userid}`,
+                roomid: uid,
             });
 
-            checkRoom(userProfile.userid, user.userid)
+            checkRoom(uid)
         }
 
     }
@@ -88,15 +90,15 @@ function ChatComp() {
     }
 
 
-    async function checkRoom(user1, user2) {
-        if (user1, user2) {
-            const docRef = doc(db, "activerooms", `${user1}-${user2}`);
-            const docRef2 = doc(db, "activerooms", `${user2}-${user1}`);
+    async function checkRoom(uid) {
+        if (uid) {
+            const docRef = doc(db, "activerooms", uid);
+
             const docSnap = await getDoc(docRef);
-            const docSnap2 = await getDoc(docRef2);
 
-            if (docSnap.exists() || docSnap2.exists()) {
 
+            if (docSnap.exists()) {
+                console.log(docSnap.data())
                 setRoom(docSnap.data());
 
             } else {
@@ -173,7 +175,7 @@ function ChatComp() {
     return (
         <div className='flex flex-col gap-6 w-full md:p-8 p-4'>
             <div className=''>
-                chat box connected tooo : {currentUser && currentUser.name}
+                chat box connected tooo : {currentUser && currentUser.name} - {room && room.roomid}
             </div>
 
             <div className=''>
