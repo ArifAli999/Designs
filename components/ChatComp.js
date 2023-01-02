@@ -73,23 +73,28 @@ function ChatComp() {
         if (querySnapshot.empty) {
             // Creeate a neew room for user.
             console.log('no rooms found - creating one')
-            createRoom()
-
+            createRoom();
         }
 
+
+
+
         else {
+
+            // if rooms found, join user to the room by updating the room details.
             querySnapshot.forEach((doc) => {
                 availableRooms.push(doc.data())
                 setRoom(doc.data())
-                roomSet = true;
-
-
             })
 
-            // updateRoom()
+
+
             // update row 
 
 
+
+            updateRoom(availableRooms.map(m => m.roomid).toString())
+            console.log(availableRooms.map(m => m.roomid).toString())
 
         }
 
@@ -102,26 +107,26 @@ function ChatComp() {
     async function updateRoom(id) {
 
 
-        const romId = room && room.roomid
-        console.log(romId)
 
 
-        if (romId) {
-
-            const docRef = doc(db, "rooms", romId);
-
-            await updateDoc(docRef, {
-                user2id: userProfile.userid,
-                user2: userProfile.name,
-                status: 'connected',
-            }).then(() => {
-                console.log('room seetup successful')
-                setConnected(true)
-
-            })
 
 
-        }
+
+
+        const docRef = doc(db, "rooms", id);
+        console.log('firing this one')
+        await updateDoc(docRef, {
+            user2id: userProfile.userid,
+            user2: userProfile.name,
+            status: 'connected',
+        }).then(() => {
+            console.log('room seetup successful')
+            setConnected(true)
+
+        })
+
+
+
 
 
     }
@@ -210,7 +215,7 @@ function ChatComp() {
             <div className=''>
 
                 {messages && messages.map((m) => (
-                    <p>{m.sentBy}: {m.content}</p>
+                    <p className='' key={m.messsageId}>{m.sentBy}: {m.content}</p>
                 ))}
             </div>
 
