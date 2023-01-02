@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { collection, doc, setDoc, getDocs, onSnapshot, query, where, serverTimestamp, getDoc, updateDoc, arrayUnion } from "firebase/firestore";
+import { collection, doc, setDoc, getDocs, onSnapshot, query, where, serverTimestamp, getDoc, updateDoc, arrayUnion, limit } from "firebase/firestore";
 import { db, auth } from "../firebase/firebase.config";
 import useAuthStore from '../store/authStore'
 import { useQueryClient } from 'react-query';
@@ -10,135 +10,181 @@ function ChatComp() {
 
     const queryClient = useQueryClient()
     const { userProfile } = useAuthStore()
-    const [users, setUser] = useState([]);
-    const [currentUser, setCurrentUser] = useState();
     const [room, setRoom] = useState();
     const [chatMessage, setChatMessage] = useState('');
     const [myA, setmyA] = useState([])
-    const [messages, setMessages] = useState([]);
-
-
-
-
-
-
+    const [messages, setMessages] = useState();
+    const [connected, setConnected] = useState(room ? true : false);
+    let roomSet = false;
+    let roomId = ''
 
     useEffect(() => {
-        dataFetch()
+        searchRooms()
+
+        if (room) {
+            console.log(room.roomid)
+        }
 
 
     }, [])
 
-    useEffect(() => {
-        findRoom()
-        if (currentUser) {
 
-            // createRoom(currentUser)
-        }
 
-    }, [users])
+
 
     useEffect(() => {
-        if (room && room.roomid) {
-            getMessages();
+        const getChat = () => {
+            const unsub = onSnapshot(doc(db, 'rooms', room.roomid), (doc) => {
+                doc.exists() && setMessages(doc.data().messages)
+            })
+
+
+            return () => {
+                unsub();
+            }
+
         }
+
+        room && getChat()
+
+
     }, [room])
 
 
-    async function findRoom() {
-        const data = []
-        const finalData = []
 
-        const q = query(collection(db, "activerooms"), where("user1id", "==", `${userProfile.userid}`));
-        const q2 = query(collection(db, "activerooms"), where("user2id", "==", `${userProfile.userid}`));
+
+
+
+    // 1- search db for available rooms. searchRooms
+
+    // 2- if room exists, update the room and make it unavailable - updateRoom 
+
+    // 3 - if room does not exist, creeate a new room and wait for someone to join.  - createRoom.
+
+
+
+    async function searchRooms() {
+
+        const q = query(collection(db, "rooms"), where("status", "==", 'searching'), limit(1));
 
         const querySnapshot = await getDocs(q);
-        const querySnapshot2 = await getDocs(q2);
+        const availableRooms = []
+
+        if (querySnapshot.empty) {
+            // Creeate a neew room for user.
+            console.log('no rooms found - creating one')
+            createRoom()
+
+        }
+
+        else {
+            querySnapshot.forEach((doc) => {
+                availableRooms.push(doc.data())
+                setRoom(doc.data())
+                roomSet = true;
 
 
-        querySnapshot.forEach((doc) => {
-            // doc.data() is never undefined for query doc snapshots
+            })
 
-            data.push(doc.data());
-        })
-        querySnapshot2.forEach((doc) => {
-            // doc.data() is never undefined for query doc snapshots
-
-            data.push(doc.data());
-        })
-
-        finalData.push(data)
-        console.log(finalData)
+            // updateRoom()
+            // update row 
 
 
 
-        if (!finalData) {
-            alert('create room')
+        }
 
-            createRoom(currentUser)
+
+
+
+    }
+
+
+    async function updateRoom(id) {
+
+
+        const romId = room && room.roomid
+        console.log(romId)
+
+
+        if (romId) {
+
+            const docRef = doc(db, "rooms", romId);
+
+            await updateDoc(docRef, {
+                user2id: userProfile.userid,
+                user2: userProfile.name,
+                status: 'connected',
+            }).then(() => {
+                console.log('room seetup successful')
+                setConnected(true)
+
+            })
+
+
         }
 
 
     }
 
-    async function createRoom(user) {
+
+    async function createRoom() {
+        // if no room exists createe one.
         const uid = uuidv4()
-
-
-
-
-
-
-
-        await setDoc(doc(db, "activerooms", uid), {
+        await setDoc(doc(db, "rooms", uid), {
             user1id: userProfile.userid,
-            user2id: user.userid,
+            user2id: '',
             user1: userProfile.name,
-            user2: user.name,
+            user2: '',
             createdAt: serverTimestamp(),
             roomid: uid,
-        });
+            status: 'searching'
+        }).then(() => {
+            console.log('creating room')
 
-        checkRoom(uid)
+            // geet the room details and storee in the room state valuee,
 
-
+            getRoom(uid)
+            setConnected(true)
+        })
     }
 
-    async function checkRoom(uid) {
-        if (uid) {
-            const docRef = doc(db, "activerooms", uid);
 
-            const docSnap = await getDoc(docRef);
+    async function getRoom(id) {
 
+        const docRef = doc(db, "rooms", id);
+        const docSnap = await getDoc(docRef);
 
-            if (docSnap.exists()) {
-                console.log('room created', docSnap.data())
-                setRoom(docSnap.data());
+        if (docSnap.exists()) {
+            console.log("Document data:", docSnap.data());
 
-            } else {
-                // doc.data() will be undefined in this case
-                console.log("No such document!");
-            }
+            setRoom(docSnap.data())
+        } else {
+            // doc.data() will be undefined in this case
+            console.log("No such document!");
         }
 
     }
 
-    async function sendMessage(id) {
+
+    async function sendMessage() {
 
 
-        const docRef = doc(db, "activerooms", `${room.roomid}`);
+        const docRef = doc(db, "rooms", room.roomid);
 
         if (room && room.roomid) {
 
-            myA.push({
-                sentBy: id,
-                content: chatMessage,
-            },)
+            const uid = uuidv4()
             await updateDoc(docRef, {
-                messages: myA
+                messages: arrayUnion({
+                    messageId: uid,
+                    sentBy: userProfile.name,
+                    userId: userProfile.userid,
+                    content: chatMessage
+                })
             }).then(() => {
-                alert('mssage seent')
+
                 setChatMessage('')
+
 
             });
 
@@ -152,79 +198,20 @@ function ChatComp() {
 
 
 
-    async function getMessages() {
-        const msg = []
-        if (room && room.roomid) {
-            const unsub = onSnapshot(doc(db, "activerooms", room.roomid), (doc) => {
-
-
-                setMessages(doc.data())
-
-
-
-
-            })
-        }
-
-    }
-
-
-
-    async function dataFetch() {
-        const q = query(collection(db, "users"), where("status", "==", 'searching'), where("userid", "!=", userProfile.userid));
-
-        const querySnapshot = await getDocs(q);
-        const posts = []
-
-        querySnapshot.forEach((doc) => {
-            posts.push(doc.data())
-            setUser([...posts])
-
-        })
-
-
-        await getMatch(posts)
-        return posts
-
-
-
-    }
-    async function getMatch(list) {
-        if (list.length === 0) return alert('No more items in the list');
-        const newArray = [];
-        if (list.length > 0) {
-
-            const randomIndex = Math.floor(Math.random() * list.length);
-
-            const randomObject = list[randomIndex];
-
-            newArray.push(randomObject);
-
-            // console.log(randomObject);
-
-            setUser(list.filter(item => item !== randomObject));
-            setCurrentUser(randomObject)
-        }
-    }
-
-
-
-
-
-
-    // console.log(users)
 
     return (
         <div className='flex flex-col gap-6 w-full md:p-8 p-4'>
             <div className=''>
-                chat box connected tooo : {currentUser && currentUser.name} - {room && room.roomid}
+
+
+                {room && room.roomid} - {room && room.status}
             </div>
 
             <div className=''>
-                {messages && messages.messages?.map((m) =>
-                    <p>{m.sentBy}: {m.content}</p>
-                )}
 
+                {messages && messages.map((m) => (
+                    <p>{m.sentBy}: {m.content}</p>
+                ))}
             </div>
 
             <div className='flex items-center w-full gap-4 '>
@@ -239,8 +226,8 @@ function ChatComp() {
                 </div>
 
                 <div className=''>
-                    <button onClick={() => sendMessage(userProfile.userid)} className=''>seend</button>
-                    <button onClick={() => getMatch(users)} className='px-6 py-4 w-full h-full border border-white text-white cursor-pointer rounded-full'>
+                    <button onClick={() => sendMessage()} className=''>seend</button>
+                    <button onClick={() => console.log('test')} className='px-6 py-4 w-full h-full border border-white text-white cursor-pointer rounded-full'>
                         Next </button>
                 </div>
 
