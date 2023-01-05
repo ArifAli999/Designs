@@ -5,6 +5,7 @@ import useAuthStore from '../store/authStore'
 import { useQueryClient } from 'react-query';
 import { useQuery, useInfiniteQuery } from "react-query";
 import { uuidv4 } from '@firebase/util';
+import { get } from 'firebase/database';
 
 function ChatComp() {
 
@@ -32,6 +33,8 @@ function ChatComp() {
 
 
 
+
+
     useEffect(() => {
         const getChat = () => {
             const unsub = onSnapshot(doc(db, 'rooms', room.roomid), (doc) => {
@@ -49,6 +52,21 @@ function ChatComp() {
 
 
     }, [room])
+
+
+    useEffect(() => {
+
+
+
+
+        if (room && room.user2id == '') {
+            getRoom(room.roomid)
+        }
+    }, [room])
+
+
+
+
 
 
 
@@ -93,8 +111,9 @@ function ChatComp() {
 
 
 
-            updateRoom(availableRooms.map(m => m.roomid).toString())
-            console.log(availableRooms.map(m => m.roomid).toString())
+            updateRoom(availableRooms.map(m => m.roomid).toString(), availableRooms.map(m => m.user1id).toString())
+
+
 
         }
 
@@ -104,29 +123,31 @@ function ChatComp() {
     }
 
 
-    async function updateRoom(id) {
+    async function updateRoom(id, userid) {
 
 
 
+        if (id && userid === userProfile.userid) return createRoom();
 
 
+        else {
+            const docRef = doc(db, "rooms", id);
+            console.log('firing this one')
+            await updateDoc(docRef, {
+                user2id: userProfile.userid,
+                user2: userProfile.name,
+                status: 'connected',
+            }).then(() => {
+                console.log('room seetup successful')
+                setConnected(true)
+                getRoom(id)
+
+                //  getRoomDeets(id)
+
+            })
 
 
-
-        const docRef = doc(db, "rooms", id);
-        console.log('firing this one')
-        await updateDoc(docRef, {
-            user2id: userProfile.userid,
-            user2: userProfile.name,
-            status: 'connected',
-        }).then(() => {
-            console.log('room seetup successful')
-            setConnected(true)
-
-        })
-
-
-
+        }
 
 
     }
@@ -209,7 +230,7 @@ function ChatComp() {
             <div className=''>
 
 
-                {room && room.roomid} - {room && room.status}
+                {room && room.roomid} - {room && room.status}  to - {room && room.user1 === userProfile.name ? room && room.user2 : room && room.user1}
             </div>
 
             <div className=''>
