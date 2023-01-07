@@ -7,6 +7,9 @@ import { createWebStoragePersistor } from 'react-query/createWebStoragePersistor
 
 
 
+
+
+
 function MyApp({ Component, pageProps }) {
   const [queryClient] = useState(() => new QueryClient());
 
