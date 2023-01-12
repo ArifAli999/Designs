@@ -1,7 +1,46 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import useAuthStore from '../../store/authStore'
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebase/firebase.config';
 
-function ChatHeader({ room }) {
+function ChatHeader({ room, messages, setRoom }) {
+
+
+    useEffect(() => {
+
+
+        if (messages) {
+
+
+            getRoom(room.roomid)
+
+
+        }
+
+
+
+
+
+
+    }, [messages])
+
+
+
+    async function getRoom(id) {
+
+        const docRef = doc(db, "rooms", id);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+            console.log("Document data:", docSnap.data());
+
+            setRoom(docSnap.data())
+        } else {
+            // doc.data() will be undefined in this case
+            console.log("No such document!");
+        }
+
+    }
 
 
 

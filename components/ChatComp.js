@@ -32,6 +32,28 @@ function ChatComp() {
 
 
 
+
+    useEffect(() => {
+        const getChat = () => {
+            const unsub = onSnapshot(doc(db, 'rooms', room.roomid), (doc) => {
+                doc.exists() && setMessages(doc.data().messages)
+            })
+
+
+            return () => {
+                unsub();
+            }
+
+        }
+
+        room && getChat()
+
+
+    }, [room])
+
+
+
+
     // 1- search db for available rooms. searchRooms
 
     // 2- if room exists, update the room and make it unavailable - updateRoom 
@@ -194,7 +216,7 @@ function ChatComp() {
     return (
         <div className='flex flex-col  p-0 w-full gap-0 bg-slate-800 h-full relative'>
 
-            <ChatHeader room={room} />
+            <ChatHeader room={room} messages={messages} setRoom={setRoom} />
 
 
 
