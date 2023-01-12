@@ -6,6 +6,9 @@ import { useQueryClient } from 'react-query';
 import { useQuery, useInfiniteQuery } from "react-query";
 import { uuidv4 } from '@firebase/util';
 import { get } from 'firebase/database';
+import ChatHeader from './ChatComponents/ChatHeader';
+import ChatStream from './ChatComponents/ChatStream';
+import ChatBox from './ChatComponents/ChatBox';
 
 function ChatComp() {
 
@@ -16,60 +19,16 @@ function ChatComp() {
     const [myA, setmyA] = useState([])
     const [messages, setMessages] = useState();
     const [connected, setConnected] = useState(room ? true : false);
-    let roomSet = false;
-    let roomId = ''
+
+
+
+
+
+
 
     useEffect(() => {
         searchRooms()
-
-        if (room) {
-            console.log(room.roomid)
-        }
-
-
     }, [])
-
-
-
-
-
-
-
-    useEffect(() => {
-        const getChat = () => {
-            const unsub = onSnapshot(doc(db, 'rooms', room.roomid), (doc) => {
-                doc.exists() && setMessages(doc.data().messages)
-            })
-
-
-            return () => {
-                unsub();
-            }
-
-        }
-
-        room && getChat()
-
-
-    }, [room])
-
-
-    useEffect(() => {
-
-
-
-
-        if (room && room.user2id == '') {
-            getRoom(room.roomid)
-        }
-    }, [room])
-
-
-
-
-
-
-
 
 
 
@@ -90,7 +49,7 @@ function ChatComp() {
 
         if (querySnapshot.empty) {
             // Creeate a neew room for user.
-            console.log('no rooms found - creating one')
+            //   console.log('no rooms found - creating one')
             createRoom();
         }
 
@@ -141,6 +100,7 @@ function ChatComp() {
                 console.log('room seetup successful')
                 setConnected(true)
                 getRoom(id)
+                queryClient.invalidateQueries()
 
                 //  getRoomDeets(id)
 
@@ -175,6 +135,7 @@ function ChatComp() {
     }
 
 
+
     async function getRoom(id) {
 
         const docRef = doc(db, "rooms", id);
@@ -200,6 +161,7 @@ function ChatComp() {
         if (room && room.roomid) {
 
             const uid = uuidv4()
+            queryClient.invalidateQueries()
             await updateDoc(docRef, {
                 messages: arrayUnion({
                     messageId: uid,
@@ -207,9 +169,13 @@ function ChatComp() {
                     userId: userProfile.userid,
                     content: chatMessage
                 })
+
             }).then(() => {
 
                 setChatMessage('')
+                queryClient.invalidateQueries()
+
+
 
 
             });
@@ -226,38 +192,22 @@ function ChatComp() {
 
 
     return (
-        <div className='flex flex-col gap-6 w-full md:p-8 p-4'>
-            <div className=''>
+        <div className='flex flex-col  p-0 w-full gap-0 bg-slate-800 h-full relative'>
+
+            <ChatHeader room={room} />
 
 
-                {room && room.roomid} - {room && room.status}  to - {room && room.user1 === userProfile.name ? room && room.user2 : room && room.user1}
-            </div>
 
-            <div className=''>
+            <ChatStream messages={messages} room={room} />
 
-                {messages && messages.map((m) => (
-                    <p className='' key={m.messsageId}>{m.sentBy}: {m.content}</p>
-                ))}
-            </div>
 
-            <div className='flex items-center w-full gap-4 '>
-                <div className='flex-1'>
-                    <textarea className='w-[100%]  bg-transparent border border-neutral-500  rounded focus:border-purple-500 focus:ring-1  focus:ring-purple-500
-      disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none
-       focus:outline-none p-2'
-                        value={chatMessage}
-                        onChange={(e) => setChatMessage(e.target.value)}
 
-                    ></textarea>
-                </div>
+            <ChatBox chatMessage={chatMessage} sendMessage={sendMessage} setChatMessage={setChatMessage} />
 
-                <div className=''>
-                    <button onClick={() => sendMessage()} className=''>seend</button>
-                    <button onClick={() => console.log('test')} className='px-6 py-4 w-full h-full border border-white text-white cursor-pointer rounded-full'>
-                        Next </button>
-                </div>
 
-            </div>
+
+
+
         </div>
     )
 }

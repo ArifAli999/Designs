@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import GuestComponent from '../components/GuestComponent'
 import AuthComponent from '../components/AuthComponent';
 import useAuthStore from '../store/authStore';
+import ChatComp from '../components/ChatComp';
 
 function Home() {
 
@@ -12,15 +13,14 @@ function Home() {
 
 
     return (
-        <div className='bg-black min-h-scren w-full h-full '>
-            <h2 className='text-purple-600 text-xl font-semibold p-4'>Anon Chat</h2>
 
 
+        <>
 
-            {userProfile && userProfile.userid ? <AuthComponent /> : <GuestComponent />}
+            {userProfile && userProfile.userid ? <ChatComp /> : <GuestComponent />}
+        </>
 
 
-        </div>
     )
 }
 
